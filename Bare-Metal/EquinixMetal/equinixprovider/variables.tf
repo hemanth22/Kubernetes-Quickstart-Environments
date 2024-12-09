@@ -13,18 +13,23 @@ variable "OS" {
   default = "ubuntu_21_04"
 }
 
-variable "project_id" {
-  type = string
-  default = ""
-}
-
 variable "hostname" {
   type = string
   default = "k8stesting"
 }
 
+variable "project_id" {
+  type = string
+  default = ""
+}
+
 variable "token" {
   type = string
   sensitive = true
+  default = ""
+}
+
+variable "public_ssh_key" {
+  type = string
   default = ""
 }

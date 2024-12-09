@@ -7,10 +7,12 @@ resource "google_container_cluster" "primary" {
   location = var.region
   
   remove_default_node_pool = true
-  initial_node_count       = 1
+  initial_node_count       = 2
 
   network    = var.vpc_name
   subnetwork = var.subnet_name
+
+  min_master_version = var.k8s_version
 }
 
 resource "google_container_node_pool" "nodes" {
@@ -29,7 +31,7 @@ resource "google_container_node_pool" "nodes" {
       env = var.project_id
     }
 
-    machine_type = "n1-standard-1"
+    machine_type = var.machine_type
     tags         = ["gke-node", "${var.project_id}-gke"]
     metadata = {
       disable-legacy-endpoints = "true"

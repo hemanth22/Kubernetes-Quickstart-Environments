@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket = "terraform-state-k8squickstart"
+    bucket = "terraform-state-k8senv"
     key    = "eks-terraform-workernodes.tfstate"
     region = "us-east-1"
   }
@@ -50,6 +50,8 @@ resource "aws_eks_cluster" "k8squickstart-eks" {
   name = "k8squickstart-cluster"
   role_arn = aws_iam_role.eks-iam-role.arn
 
+  enabled_cluster_log_types = ["api", "audit", "scheduler", "controllerManager"]
+  version = var.k8sVersion
   vpc_config {
     subnet_ids = [var.subnet_id_1, var.subnet_id_2]
   }
@@ -95,17 +97,26 @@ resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly" {
   role       = aws_iam_role.workernodes.name
 }
 
+resource "aws_iam_role_policy_attachment" "CloudWatchAgentServerPolicy-eks" {
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  role       = aws_iam_role.workernodes.name
+}
+
+resource "aws_iam_role_policy_attachment" "AmazonEBSCSIDriverPolicy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  role       = aws_iam_role.workernodes.name
+}
 resource "aws_eks_node_group" "worker-node-group" {
   cluster_name    = aws_eks_cluster.k8squickstart-eks.name
   node_group_name = "k8squickstart-workernodes"
   node_role_arn   = aws_iam_role.workernodes.arn
   subnet_ids      = [var.subnet_id_1, var.subnet_id_2]
-  instance_types = ["t3.xlarge"]
+  instance_types = ["t3.2xlarge"]
 
   scaling_config {
-    desired_size = 3
+    desired_size = var.desired_size
     max_size     = 4
-    min_size     = 2
+    min_size     = var.min_size
   }
 
   depends_on = [
@@ -113,4 +124,9 @@ resource "aws_eks_node_group" "worker-node-group" {
     aws_iam_role_policy_attachment.AmazonEKS_CNI_Policy,
     #aws_iam_role_policy_attachment.AmazonEC2ContainerRegistryReadOnly,
   ]
+}
+
+resource "aws_eks_addon" "csi" {
+  cluster_name = aws_eks_cluster.k8squickstart-eks.name
+  addon_name   = "aws-ebs-csi-driver"
 }
